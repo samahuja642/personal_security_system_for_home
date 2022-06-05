@@ -2,9 +2,6 @@
 ## Contributors
 <ol>
 <li>Samarth Ahuja</li>
-<li>Abhishek Bansal</li>
-<li>Shubham Singh</li>
-<li>Aman Chaturvedi</li>
 </ol>
 
 ## Installation
