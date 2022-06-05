@@ -10,13 +10,14 @@ import smtplib
 import imghdr
 import os
 import numpy as np
-# import pygame.mixer 
 from pydub import AudioSegment
 from pydub.playback import play
 import requests
 import re
+import multiprocessing
 
 class project:
+            
     def image(self):
         '''Only For Knowledge'''
         image = face_recognition.load_image_file('obama.png')
@@ -29,7 +30,6 @@ class project:
 
     def image_saver(self):
         try:
-            # face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
             video = cv2.VideoCapture(0)
             check,frame = video.read()
             cv2.imwrite('./temp/savedImage.jpg',frame)
@@ -37,6 +37,19 @@ class project:
         except:
             print('WebCam Is Not Working Properly or Plugged In.')
 
+    def ngrok(self):
+        os.system('ngrok http 5000 --region=in > /dev/null')
+
+    def flask_app(self):
+        os.system('flask run > /dev/null')
+        
+    def url_saver(self):
+        url = os.popen('curl -s localhost:4040/api/tunnels | jq .tunnels[0].public_url').read()
+        with open('link.txt','w') as file:
+            file.write(url)
+            file.close()
+        
+        
     def email(self):
         EMAIL_ADDRESS = os.environ.get('email_address')
         EMAIL_PASSWORD = os.environ.get('email_password')
@@ -44,8 +57,20 @@ class project:
         msg['Subject'] = 'Intruder Alert!'
         msg['From'] = EMAIL_ADDRESS
         msg['To'] = EMAIL_ADDRESS
-        # os.system('ngrok tcp 22 --region=in')
-        url = os.popen('curl -s localhost:4040/api/tunnels | jq .tunnels[0].public_url').read()
+        process1 = multiprocessing.Process(target=self.ngrok)
+        process2 = multiprocessing.Process(target=self.flask_app)
+        process3 = multiprocessing.Process(target=self.url_saver)
+        process1.daemon = True
+        process1.start()
+        time.sleep(5)
+        process2.daemon = True
+        process2.start()
+        process3.daemon = True
+        process3.start()
+        time.sleep(5) 
+        url = None
+        with open('link.txt','r') as file:
+            url = file.read()
         msg.set_content(f'Do You want to Allow person/persons to Enter?\n{url}')
         files = ['./temp/savedImage.jpg']
         for file in files:
@@ -59,28 +84,24 @@ class project:
             smtp.send_message(msg)
         with open('response.txt','w'):
             pass
-        t=300
+        t=30
         while(t):
             t-=1
             if(os.path.getsize('response.txt')==1):
                 f = open("response.txt", "r")
                 var = f.read()
+                process1.kill()
+                process2.kill()
+                process3.kill()
+                os.system('pkill -9 ngrok')
+                os.system('pkill -9 flask')
                 return True if var=='1' else False 
             time.sleep(1)
-        return False
-    
-    def recogonizer2(self):
-        train_images = os.listdir('./images/')
-        train_images_path = ['./images/'+ x for x in train_images]
-        imgTest = face_recognition.load_image_file('./temp/savedImage.jpg')
-        imgTest = cv2.cvtColor(imgTest,cv2.COLOR_BGR2RGB)
-        encodeTest = face_recognition.face_encodings(imgTest)[0]
-        for i in train_images_path:
-            imgTrain = face_recognition.load_image_file(i)
-            # imgTrain = cv2.cvtColor(imgTrain,cv2.COLOR_BGR2RGB)
-            encodeTrain = face_recognition.face_encodings(imgTrain)[0]
-            if(face_recognition.compare_faces([encodeTrain],encodeTest)):
-                return True
+        process1.kill()
+        process2.kill()
+        process3.kill()
+        os.system('pkill -9 ngrok')
+        os.system('pkill -9 flask')
         return False
 
     def recogonizer(self):
@@ -91,7 +112,6 @@ class project:
         encodeFace = face_recognition.face_encodings(imgTest)[0]
         for i in train_images_path:
             imgTrain = face_recognition.load_image_file(i)
-            # imgTrain = cv2.cvtColor(imgTrain,cv2.COLOR_BGR2RGB)
             encodeListKnown = face_recognition.face_encodings(imgTrain)[0]
             matches = face_recognition.compare_faces([encodeListKnown],encodeFace)
             faceDis = face_recognition.face_distance([encodeListKnown],encodeFace)
@@ -100,6 +120,7 @@ class project:
                 return True
             else:
                 return False
+            
     def webcam(self):
         '''Detecting Webcam and Making Rectangles on it.'''
         try:
@@ -121,6 +142,7 @@ class project:
                     break 
         except:
             print('WebCam Is Not Working Properly or Plugged In.')
+            
     def greeting(self):
         curr_time = datetime.datetime.now()
         curr_time = str(curr_time.hour).zfill(2)+str(curr_time.minute).zfill(2)
@@ -136,6 +158,7 @@ class project:
         tts.save('./temp/voice.mp3')
         sound = AudioSegment.from_mp3("./temp/voice.mp3")
         play(sound)
+        
     def autodetect(self):
         try:
             face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -151,6 +174,7 @@ class project:
                     return True
         except:
             print('WebCam Is Not Working Properly or Plugged In.')
+            
     def main(self):
         while(True):
             if(self.autodetect()):
@@ -166,7 +190,8 @@ class project:
                         self.speak('You are Not Allowed to Go inside')
                 else:
                     self.speak('You Can Go Inside the House')
-                    break
+                    
+                time.sleep(30)
             else:
                 time.sleep(1)
             
